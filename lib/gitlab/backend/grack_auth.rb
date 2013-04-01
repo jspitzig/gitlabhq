@@ -85,7 +85,9 @@ module Grack
     def project
       unless instance_variable_defined? :@project
         # Find project by PATH_INFO from env
-        if m = /^\/([\w\.\/-]+)\.git/.match(@request.path_info).to_a
+        request_path_info = @request.path_info
+        request_path_info.gsub!(/^#{Gitlab.config.gitlab.relative_url_root}/, "")
+        if m = /^\/([\w\.\/-]+)\.git/.match(request_path_info).to_a
           @project = Project.find_with_namespace(m.last)
         end
       end
