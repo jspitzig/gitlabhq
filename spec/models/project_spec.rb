@@ -18,6 +18,7 @@
 #  public                 :boolean          default(FALSE), not null
 #  issues_tracker         :string(255)      default("gitlab"), not null
 #  issues_tracker_id      :string(255)
+#  snippets_enabled       :boolean          default(TRUE), not null
 #
 
 require 'spec_helper'
@@ -232,7 +233,7 @@ describe Project do
 
     it "should be true for projects with external issues tracker if issues enabled" do
       ext_project.can_have_issues_tracker_id?.should be_true
-    end 
+    end
 
     it "should be false for projects with internal issue tracker if issues enabled" do
       project.can_have_issues_tracker_id?.should be_false
@@ -245,5 +246,16 @@ describe Project do
       project.can_have_issues_tracker_id?.should be_false
       ext_project.can_have_issues_tracker_id?.should be_false
     end
+  end
+
+  describe :open_branches do
+    let(:project) { create(:project) }
+
+    before do
+      project.protected_branches.create(name: 'master')
+    end
+
+    it { project.open_branches.map(&:name).should include('bootstrap') }
+    it { project.open_branches.map(&:name).should_not include('master') }
   end
 end

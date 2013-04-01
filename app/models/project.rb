@@ -18,15 +18,14 @@
 #  public                 :boolean          default(FALSE), not null
 #  issues_tracker         :string(255)      default("gitlab"), not null
 #  issues_tracker_id      :string(255)
+#  snippets_enabled       :boolean          default(TRUE), not null
 #
 
 require "grit"
 
 class Project < ActiveRecord::Base
-  include Gitolited
+  include Gitlab::ShellAdapter
   extend Enumerize
-
-  class TransferError < StandardError; end
 
   attr_accessible :name, :path, :description, :default_branch, :issues_tracker,
     :issues_enabled, :wall_enabled, :merge_requests_enabled, :snippets_enabled, :issues_tracker_id,
@@ -370,12 +369,19 @@ class Project < ActiveRecord::Base
   end
 
   def open_branches
-    if protected_branches.empty?
-      self.repo.heads
-    else
-      pnames = protected_branches.map(&:name)
-      self.repo.heads.reject { |h| pnames.include?(h.name) }
-    end.sort_by(&:name)
+    all_branches = repository.branches
+
+    if protected_branches.present?
+      all_branches.reject! do |branch|
+        protected_branches_names.include?(branch.name)
+      end
+    end
+
+    all_branches
+  end
+
+  def protected_branches_names
+    @protected_branches_names ||= protected_branches.map(&:name)
   end
 
   def root_ref?(branch)
@@ -397,6 +403,6 @@ class Project < ActiveRecord::Base
 
   # Check if current branch name is marked as protected in the system
   def protected_branch? branch_name
-    protected_branches.map(&:name).include?(branch_name)
+    protected_branches_names.include?(branch_name)
   end
 end

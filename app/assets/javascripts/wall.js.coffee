@@ -1,12 +1,9 @@
 @Wall =
   note_ids: []
-  notes_path: null
-  notes_params: null
   project_id: null
 
   init: (project_id) ->
     Wall.project_id = project_id
-    Wall.notes_path = "/api/" + gon.api_version + "/projects/" + project_id + "/notes.json"
     Wall.getContent()
     Wall.initRefresh()
     Wall.initForm()
@@ -15,22 +12,15 @@
   # Gets an initial set of notes.
   # 
   getContent: ->
-    $.ajax
-      url: Wall.notes_path,
-      data:
-        private_token: gon.api_token
-        gfm: true
-        recent: true
-      dataType: "json"
-      success: (notes) ->
-        notes.sort (a, b) ->
-          return a.id - b.id
-        $.each notes, (i, note)->
-          if $.inArray(note.id, Wall.note_ids) == -1
-            Wall.note_ids.push(note.id)
-            Wall.renderNote(note)
-            Wall.scrollDown()
-            $("abbr.timeago").timeago()
+    Api.notes Wall.project_id, (notes) ->
+      $.each notes, (i, note) ->
+        # render note if it not present in loaded list
+        # or skip if rendered
+        if $.inArray(note.id, Wall.note_ids) == -1
+          Wall.note_ids.push(note.id)
+          Wall.renderNote(note)
+          Wall.scrollDown()
+          $("abbr.timeago").timeago()
 
   initRefresh: ->
     setInterval("Wall.refresh()", 10000)
@@ -68,14 +58,26 @@
     form.show()
   
   renderNote: (note) ->
-    author = '<strong class="wall-author">' + note.author.name + '</strong>'
-    body = '<span class="wall-text">' + linkify(sanitize(note.body)) + '</span>'
-    file = ''
-    time = '<abbr class="timeago" title="' + note.created_at + '">' + note.created_at + '</time>'
+    template = Wall.noteTemplate()
+    template = template.replace('{{author_name}}', note.author.name)
+    template = template.replace('{{created_at}}', note.created_at)
+    template = template.replace('{{text}}', linkify(sanitize(note.body)))
 
     if note.attachment
-      file = '<span class="wall-file"><a href="/files/note/' + note.id + '/' + note.attachment + '">' + note.attachment + '</a></span>'
-    
-    html = '<li>' + author + body + file + time + '</li>'
+      file = '<i class="icon-paper-clip"/><a href="/files/note/' + note.id + '/' + note.attachment + '">' + note.attachment + '</a>'
+    else
+      file = ''
+    template = template.replace('{{file}}', file)
 
-    $('ul.notes').append(html)
+
+    $('ul.notes').append(template)
+
+  noteTemplate: ->
+    return '<li>
+      <strong class="wall-author">{{author_name}}</strong>
+      <span class="wall-text">
+        {{text}}
+        <span class="wall-file">{{file}}</span>
+      </span>
+      <abbr class="timeago" title="{{created_at}}">{{created_at}}</abbr>
+    </li>'

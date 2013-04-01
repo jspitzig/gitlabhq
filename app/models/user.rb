@@ -33,6 +33,7 @@
 #  can_create_team        :boolean          default(TRUE), not null
 #  state                  :string(255)
 #  color_scheme_id        :integer          default(1), not null
+#  notification_level     :integer          default(1), not null
 #
 
 class User < ActiveRecord::Base
@@ -45,6 +46,13 @@ class User < ActiveRecord::Base
   attr_accessible :projects_limit, :can_create_team, :can_create_group, as: :admin
 
   attr_accessor :force_random_password
+
+  # Virtual attribute for authenticating by either username or email
+  attr_accessor :login
+
+  # Add login to attr_accessible
+  attr_accessible :login
+
 
   #
   # Relations
@@ -101,6 +109,9 @@ class User < ActiveRecord::Base
             format: { with: Gitlab::Regex.username_regex,
                       message: "only letters, digits & '_' '-' '.' allowed. Letter should be first" }
 
+  validates :notification_level,
+    inclusion: { in: Notification.notification_levels },
+    presence: true
 
   validate :namespace_uniq, if: ->(user) { user.username_changed? }
 
@@ -140,6 +151,16 @@ class User < ActiveRecord::Base
   # Class methods
   #
   class << self
+    # Devise method overriden to allow sing in with email or username
+    def find_for_database_authentication(warden_conditions)
+      conditions = warden_conditions.dup
+      if login = conditions.delete(:login)
+        where(conditions).where(["lower(username) = :value OR lower(email) = :value", { value: login.downcase }]).first
+      else
+        where(conditions).first
+      end
+    end
+
     def filter filter_name
       case filter_name
       when "admins"; self.admins
@@ -189,6 +210,10 @@ class User < ActiveRecord::Base
 
   def to_param
     username
+  end
+
+  def notification
+    @notification ||= Notification.new(self)
   end
 
   def generate_password

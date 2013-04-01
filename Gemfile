@@ -22,8 +22,9 @@ gem 'omniauth-twitter'
 gem 'omniauth-github'
 
 # Extracting information from a git repository
-gem "gitlab-grit", '~> 1.0.0', require: 'grit'
-gem 'grit_ext', '~> 0.6.2'
+# Since gollum requires grit we cannot use gitlab-grit gem name any more. Use grit instead
+gem "grit", '~> 2.5.0', git: 'https://github.com/gitlabhq/grit.git', ref: '42297cdcee16284d2e4eff23d41377f52fc28b9d'
+gem 'grit_ext', '~> 0.8.1'
 
 # Ruby/Rack Git Smart-HTTP Server Handler
 gem 'gitlab-grack', '~> 1.0.0', require: 'grack'
@@ -104,7 +105,7 @@ gem 'settingslogic'
 # github-linquist needs pygments 0.4.2 but Gollum 2.4.11
 # requires pygments 0.3.2. The latest master Gollum has been updated
 # to use pygments 0.4.2. Change this after next Gollum release.
-gem "gollum", "~> 2.4.0", git: "git://github.com/gollum/gollum.git", ref: "5dcd3c8c8f"
+gem "gollum", "~> 2.4.0", git: "https://github.com/gollum/gollum.git", ref: "5dcd3c8c8f"
 
 # Misc
 gem "foreman"
@@ -153,9 +154,9 @@ end
 group :development, :test do
   gem 'coveralls', require: false
   gem 'rails-dev-tweaks'
-  gem 'spinach-rails', '0.2.0'
-  gem "rspec-rails", '2.12.2'
-  gem "capybara", '2.0.2'
+  gem 'spinach-rails'
+  gem "rspec-rails"
+  gem "capybara"
   gem "pry"
   gem "awesome_print"
   gem "database_cleaner"
@@ -173,6 +174,8 @@ group :development, :test do
 
   # PhantomJS driver for Capybara
   gem 'poltergeist', '1.1.0'
+
+  gem 'spork', '~> 1.0rc'
 end
 
 group :test do
